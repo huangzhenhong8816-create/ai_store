@@ -1,0 +1,3 @@
+store_id,store_name,district,shelf_groups,shelf_layers,sku_per_layer,avg_daily_sales,lat,lng,store_area,open_time
+粤38786,广东深圳罗湖观山嘉苑美宜佳,其他,18,5,10,4168.33,22.589538,114.145584,45,0:00-24:00
+粤38382,广东湛江廉江河唇红荔路美宜佳,商业区,24,5,10,1858.64,21.703161,110.312068,75,0:00-24:00

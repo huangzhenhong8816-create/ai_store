@@ -7,7 +7,7 @@ from utils.data_loader import (
 
 # ==================== 页面配置 ====================
 st.set_page_config(
-    page_title="便利店经营助手 · 店长工作台",
+    page_title="AI门店经营助手",
     page_icon="🏪",
     layout="wide"
 )
@@ -419,7 +419,7 @@ def render_category_table_with_component(df):
 # ==================== 侧边栏 ====================
 with st.sidebar:
     st.image("https://img.icons8.com/color/96/000000/convenience-store.png", width=60)
-    st.title("🏪 便利店经营助手")
+    st.title("🏪 AI门店经营助手")
     
     # 门店选择
     stores_df = load_stores()

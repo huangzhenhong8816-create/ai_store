@@ -623,8 +623,12 @@ if st.session_state.step == 1:
     st.markdown("#### ⚠️ 重点关注场景")
     problem_scenes = identify_problem_scenes(scene_full_data)
 
-    if problem_scenes:
-        for ps in problem_scenes:
+    # 按优先级从高到低排序
+    priority_order = {"高": 1, "中": 2}
+    problem_scenes_sorted = sorted(problem_scenes, key=lambda x: priority_order[x["优先级"]])
+    
+    if problem_scenes_sorted:
+        for ps in problem_scenes_sorted:
             col1, col2 = st.columns([3, 1])
             with col1:
                 st.markdown(f"""

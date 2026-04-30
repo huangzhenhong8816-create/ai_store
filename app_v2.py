@@ -702,8 +702,7 @@ if st.session_state.step == 1:
                             💡 已执行以下优化操作：\n
                             • 完成{new_count}个商品报货\n
                             • 完成{remove_count}个商品下架\n
-                            • 完成{price_count}个商品调价\n
-                            # • 完成{promo_count}个时段促销
+                            • 完成{price_count}个商品调价
                             
                             📊 总计：{total_actions}项优化操作已提交
                             """)

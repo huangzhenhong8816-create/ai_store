@@ -7,7 +7,7 @@ from utils.data_loader import (
 
 # ==================== 页面配置 ====================
 st.set_page_config(
-    page_title="AI门店经营助手",
+    page_title="AI门店商品经营助手",
     page_icon="🏪",
     layout="wide"
 )
@@ -60,26 +60,25 @@ if "current_diagnosis_scene" not in st.session_state:
 
 # ==================== 模拟基础数据 ====================
 store_name = "杭州西湖店 (商务区)"
-current_month_sales = 283000
-mom_change = -3.2
-yoy_change = 5.8
+current_month_sales = 104004
+mom_change = 8.8
+yoy_change = -5.8
 
 months = ["2025-04","2025-05","2025-06","2025-07","2025-08",
           "2025-09","2025-10","2025-11","2025-12","2026-01",
           "2026-02","2026-03","2026-04"]
-sales_trend = [235000, 242000, 258000, 271000, 268000,
-               262000, 275000, 281000, 279000, 265000,
-               258000, 272000, 283000]
+sales_trend = [114075, 98746, 124680, 109312, 118088, 112336, 114360, 101800, 97400, 114956, 109335, 98262, 104004
+]
 
 # ==================== 动态生成场景数据 ====================
 def generate_scene_data():
-    scenes = ["收银台端架", "A区饮品", "B区饼干", "C区方便食品", "冷柜乳品"]
-    current_groups = [1, 3, 2, 2, 1]
-    recommend_groups = [1, 2, 2, 2, 2]
-    sales = [45200, 82300, 38900, 68200, 48400]
-    pe = [45200, 27433, 19450, 34100, 48400]
-    mom_changes = [2.3, -4.2, -12.8, 3.5, -1.2]
-    yoy_changes = [5.2, -2.8, -15.3, 8.2, 2.1]
+    scenes = ["大休闲", "粮油冲调", "烘焙常温奶", "日化", "方便食品"]
+    current_groups = [2, 2, 2, 3, 1]
+    recommend_groups = [2, 2, 2, 2, 1]
+    sales = [2785, 1806, 11572, 3442, 3558]
+    pe = [1393, 903, 11572, 1147, 3558]
+    mom_changes = [2.3, -4.2, 3.5, -12.8, -1.2]
+    yoy_changes = [5.2, -2.8, 8.2, -15.3,  2.1]
     
     total_sales = sum(sales)
     sales_ratio = [round(s / total_sales * 100, 1) for s in sales]
@@ -91,7 +90,7 @@ def generate_scene_data():
         elif current_groups[i] < recommend_groups[i]:
             shelf_suggestions.append(f"扩充至{recommend_groups[i]}组")
         else:
-            if pe[i] < 25000:
+            if pe[i] < 1000:
                 shelf_suggestions.append("保持货架，需优化品类结构")
             elif mom_changes[i] < -5 or yoy_changes[i] < -5:
                 shelf_suggestions.append("保持货架，需诊断销售下滑原因")
@@ -114,19 +113,19 @@ scene_full_data = generate_scene_data()
 
 # ==================== 各场景的品类数据（包含增长驱动） ====================
 def get_category_data_with_drivers(scene_name):
-    if scene_name == "B区饼干":
+    if scene_name == "日化":
         df = pd.DataFrame({
-            "品类": ["饼干类", "曲奇类", "威化类", "蛋卷类", "膨化类"],
-            "SKU数": [52, 18, 12, 8, 6],
-            "目标SKU数": [40, 15, 15, 10, 8],
-            "销售额占比": [52.1, 12.3, 6.8, 6.0, 3.4],
-            "动销率": [68, 72, 88, 75, 55],
-            "低效SKU占比": [32, 22, 8, 12, 33],
-            "新品引入": [2.5, 1.2, 0.8, 0.5, 0.2],
-            "汰品淘汰": [-5.2, -2.1, -0.5, -0.3, -0.3],
-            "销量影响": [4.2, 2.5, 1.2, 0.8, 0.5],
-            "价格影响": [-2.8, -0.5, -0.2, 0.1, 0.2],
-            "消费升级": [1.2, 0.8, 0.3, 0.2, 0.1]
+            "品类": ["个人护理", "口腔护理", "生活用纸", "餐厨用品"],
+            "SKU数": [46, 18, 12, 8],
+            "目标SKU数": [40, 15, 15, 10],
+            "销售额占比": [52.1, 12.3, 6.8, 6.0],
+            "动销率": [68, 72, 88, 75],
+            "低效SKU占比": [32, 22, 8, 12],
+            "新品引入": [2.5, 1.2, 0.8, 0.5],
+            "汰品淘汰": [-5.2, -2.1, -0.5, -0.3],
+            "销量影响": [4.2, 2.5, 1.2, 0.8],
+            "价格影响": [-2.8, -0.5, -0.2, 0.1],
+            "消费升级": [1.2, 0.8, 0.3, 0.2]
         })
         
         # 生成问题识别和主要关注点
@@ -138,6 +137,9 @@ def get_category_data_with_drivers(scene_name):
             if row["SKU数"] > row["目标SKU数"]:
                 problems.append("🔴 SKU过多")
                 f.append(f"⬇️ 减少{row['SKU数'] - row['目标SKU数']}个SKU")
+            if row["新品引入"] > 1 and row["SKU数"] < row["目标SKU数"]:
+                problems.append("🟡 SKU偏少")
+                f.append(f"🗑️ 引入{row['目标SKU数'] - row['SKU数']}个SKU")
             if row["低效SKU占比"] > 25:
                 problems.append("🔴 低效SKU偏高")
                 f.append("🗑️ 汰换滞销品")
@@ -153,19 +155,19 @@ def get_category_data_with_drivers(scene_name):
         df["问题识别"] = insights
         df["主要关注点"] = focus
         return df
-    elif scene_name == "A区饮品":
+    elif scene_name == "粮油冲调":
         df = pd.DataFrame({
-            "品类": ["碳酸饮料", "茶饮料", "功能饮料", "包装水", "果汁"],
-            "SKU数": [25, 18, 12, 10, 8],
-            "目标SKU数": [20, 15, 12, 8, 10],
-            "销售额占比": [44.2, 23.6, 15.2, 8.7, 6.5],
-            "动销率": [72, 78, 82, 75, 65],
-            "低效SKU占比": [28, 18, 12, 15, 25],
-            "新品引入": [3.2, 2.5, 1.8, 0.5, 0.5],
-            "汰品淘汰": [-3.5, -1.2, -0.3, -0.2, -0.2],
-            "销量影响": [2.8, 3.2, 2.5, 1.2, 0.8],
-            "价格影响": [-1.5, -0.5, -0.2, 0.1, -0.3],
-            "消费升级": [1.5, 1.2, 0.8, 0.3, 0.2]
+            "品类": ["粮油", "冲调品", "调味副食"],
+            "SKU数": [10, 12, 12],
+            "目标SKU数": [8, 15, 12],
+            "销售额占比": [44.2, 23.6, 15.2],
+            "动销率": [72, 78, 82],
+            "低效SKU占比": [28, 18, 12],
+            "新品引入": [3.2, 2.5, 1.8],
+            "汰品淘汰": [-3.5, -1.2, -0.3],
+            "销量影响": [2.8, 3.2, 2.5],
+            "价格影响": [-1.5, -0.5, -0.2],
+            "消费升级": [1.5, 1.2, 0.8]
         })
         
         insights = []
@@ -176,6 +178,9 @@ def get_category_data_with_drivers(scene_name):
             if row["SKU数"] > row["目标SKU数"]:
                 problems.append("🔴 SKU过多")
                 f.append(f"⬇️ 减少{row['SKU数'] - row['目标SKU数']}个SKU")
+            if row["新品引入"] > 1 and row["SKU数"] < row["目标SKU数"]:
+                problems.append("🟡 SKU偏少")
+                f.append(f"🗑️ 引入{row['目标SKU数'] - row['SKU数']}个SKU")
             if row["低效SKU占比"] > 25:
                 problems.append("🔴 低效SKU偏高")
                 f.append("🗑️ 汰换滞销品")
@@ -206,73 +211,98 @@ def get_product_list(scene_name):
     products = []
     
     for _, category in category_data.iterrows():
-        # 解析主要关注点中的建议数量
+        # 解析主要关注点中的建议
         focus_actions = category["主要关注点"].split(", ")
         
-        # 提取减少SKU数量
+        # 1. 提取减少SKU数量
         reduce_sku_count = 0
         for action in focus_actions:
             if "减少" in action and "个SKU" in action:
                 try:
                     reduce_sku_count = int(action.split("减少")[1].split("个SKU")[0])
                 except:
-                    reduce_sku_count = max(1, category["SKU数"] - category["目标SKU数"])
+                    reduce_sku_count = 0
         
-        # 汰换滞销品数量（根据低效SKU占比计算）
-        remove_inefficient_count = max(1, int(category["SKU数"] * category["低效SKU占比"] / 100 * 0.6))
+        # 2. 提取增加SKU数量
+        increase_sku_count = 0
+        for action in focus_actions:
+            if "引入" in action and "个SKU" in action:
+                try:
+                    increase_sku_count = int(action.split("引入")[1].split("个SKU")[0])
+                except:
+                    increase_sku_count = 0
         
-        # 新品引进数量（根据SKU缺口和新品引入影响）
-        new_sku_count = max(1, int((category["目标SKU数"] - category["SKU数"]) * 0.8))
+        # 3. 计算汰换滞销品数量
+        remove_inefficient_count = 0
+        if "汰换" in category["主要关注点"] or category["低效SKU占比"] > 25:
+            remove_inefficient_count = max(1, int(category["SKU数"] * category["低效SKU占比"] / 100 * 0.6))
         
-        # 根据品类诊断结果生成商品调整建议
+        # 4. 计算总下架数量和引进数量
+        total_remove_count = reduce_sku_count + remove_inefficient_count
+        total_introduce_count = increase_sku_count + remove_inefficient_count
         
-        # 新品引进：确保与建议的引进数量一致
-        if "补充" in category["主要关注点"] or category["新品引入"] > 0 or category["SKU数"] < category["目标SKU数"]:
-            actual_new_count = max(1, min(new_sku_count, 5))  # 限制最大5个
-            for i in range(actual_new_count):
-                products.append({
-                    "类型": "引入",
-                    "品类": category["品类"],
-                    "商品代码": f"{category['品类'][:2]}{len(products)+1:03d}",
-                    "商品名": f"{category['品类']}新品{i+1}",
-                    "原因": f"补充{category['品类']}品类，目标SKU{category['目标SKU数']}个"
-                })
+        # 确保至少保留5个SKU
+        total_remove_count = min(total_remove_count, category["SKU数"] - 5)
         
-        # 汰品淘汰：确保与建议的淘汰数量一致
-        if "汰换" in category["主要关注点"] or category["汰品淘汰"] < 0 or category["SKU数"] > category["目标SKU数"] or category["低效SKU占比"] > 25:
-            # 优先使用建议中的减少数量，如果没有则使用计算值
-            actual_remove_count = reduce_sku_count if reduce_sku_count > 0 else max(1, remove_inefficient_count)
-            actual_remove_count = min(actual_remove_count, category["SKU数"] - 5)  # 保留至少5个SKU
-            
-            for i in range(actual_remove_count):
+        # 生成下架商品（减少SKU + 汰换滞销品）
+        if total_remove_count > 0:
+            for i in range(total_remove_count):
+                if i < reduce_sku_count:
+                    # 减少SKU对应的下架商品
+                    reason = f"减少SKU优化结构，建议减少{reduce_sku_count}个SKU"
+                else:
+                    # 汰换滞销品对应的下架商品
+                    reason = f"汰换滞销品，低效SKU占比{category['低效SKU占比']}%"
+                
                 products.append({
                     "类型": "下架",
                     "品类": category["品类"],
                     "商品代码": f"{category['品类'][:2]}{len(products)+1:03d}",
                     "商品名": f"{category['品类']}淘汰品{i+1}",
-                    "原因": f"优化{category['品类']}结构，建议减少{reduce_sku_count if reduce_sku_count>0 else actual_remove_count}个SKU"
+                    "原因": reason
+                })
+        
+        # 生成引进商品（对应增加SKU + 汰换滞销品的引进）
+        if total_introduce_count > 0:
+            for i in range(total_introduce_count):
+                if i < increase_sku_count:
+                    # 增加SKU对应的引进商品
+                    reason = f"增加SKU扩充品类，建议增加{increase_sku_count}个SKU"
+                else:
+                    # 汰换滞销品对应的引进商品
+                    reason = f"汰换滞销品后补充，低效SKU占比{category['低效SKU占比']}%"
+                
+                products.append({
+                    "类型": "引入",
+                    "品类": category["品类"],
+                    "商品代码": f"{category['品类'][:2]}{len(products)+1:03d}",
+                    "商品名": f"{category['品类']}新品{i+1}",
+                    "原因": reason
                 })
         
         # 价格优化：基于价格影响和动销率
         if "加强促销" in category["主要关注点"] or abs(category["价格影响"]) > 0.5 or category["动销率"] < 70:
-            price_count = 2 if abs(category["价格影响"]) > 1.0 else 1
+            price_count = 1
             for i in range(price_count):
                 products.append({
                     "类型": "调价",
                     "品类": category["品类"],
+                    "商品代码": f"{category['品类'][:2]}{len(products)+1:03d}",
+                    "商品名": f"{category['品类']}价格优化品{i+1}",
+                    "原因": f"价格影响{category['价格影响']:+.1f}%，动销率{category['动销率']}%"
                 })
         
-        # 时段促销：基于消费升级和销量影响
-        if category["消费升级"] > 0.3 or category["销量影响"] > 1.0:
-            promo_count = 1
-            for i in range(promo_count):
-                products.append({
-                    "类型": "促销",
-                    "品类": category["品类"],
-                    "商品代码": f"{category['品类'][:2]}{len(products)+1:03d}",
-                    "商品名": f"{category['品类']}促销品{i+1}",
-                    "原因": f"消费升级{category['消费升级']:+.1f}%，销量影响{category['销量影响']:+.1f}%"
-                })
+        # # 时段促销：基于消费升级和销量影响
+        # if category["消费升级"] > 0.3 or category["销量影响"] > 1.0:
+        #     promo_count = 1
+        #     for i in range(promo_count):
+        #         products.append({
+        #             "类型": "促销",
+        #             "品类": category["品类"],
+        #             "商品代码": f"{category['品类'][:2]}{len(products)+1:03d}",
+        #             "商品名": f"{category['品类']}促销品{i+1}",
+        #             "原因": f"消费升级{category['消费升级']:+.1f}%，销量影响{category['销量影响']:+.1f}%"
+        #         })
     
     return pd.DataFrame(products)
 
@@ -294,7 +324,7 @@ def identify_problem_scenes(df):
         issues = []
         if row["环比变化"] < -5 or row["同比变化"] < -5:
             issues.append(f"销售下降（环比{row['环比变化']:.1f}%/同比{row['同比变化']:.1f}%）")
-        if row["坪效"] < 25000:
+        if row["坪效"] < 1000:
             issues.append(f"坪效偏低（¥{row['坪效']:,.0f}/组）")
         if row["货架调整建议"] != "保持":
             issues.append(f"货架需{row['货架调整建议']}")
@@ -419,7 +449,7 @@ def render_category_table_with_component(df):
 # ==================== 侧边栏 ====================
 with st.sidebar:
     st.image("https://img.icons8.com/color/96/000000/convenience-store.png", width=60)
-    st.title("🏪 AI门店经营助手")
+    st.title("🏪 AI门店商品经营助手")
     
     # 门店选择
     stores_df = load_stores()
@@ -576,7 +606,7 @@ if st.session_state.step == 1:
         for _, row in df.iterrows():
             # 判断是否为问题行
             is_problem = (row["环比变化"] < -5 or row["同比变化"] < -5 or 
-                         row["坪效"] < 25000 or row["货架调整建议"] != "保持")
+                         row["坪效"] < 1000 or row["货架调整建议"] != "保持")
             row_class = 'problem-row' if is_problem else ''
             
             # 环比样式
@@ -584,7 +614,7 @@ if st.session_state.step == 1:
             # 同比样式
             yoy_class = 'text-negative' if row["同比变化"] < -5 else ''
             # 坪效样式
-            pe_class = 'text-warning' if row["坪效"] < 25000 else ''
+            pe_class = 'text-warning' if row["坪效"] < 1000 else ''
             # 货架调整样式
             shelf_class = 'text-adjust' if row["货架调整建议"] != "保持" else ''
             
@@ -642,6 +672,14 @@ if st.session_state.step == 1:
                 if st.button(f"🔍 查看详情", key=f"diag_{ps['场景']}", use_container_width=True):
                     st.session_state.current_diagnosis_scene = ps["场景"]
                     st.session_state.step = 3
+                    # 添加JavaScript代码确保页面从最上方开始显示
+                    st.markdown("""
+                    <script>
+                    window.addEventListener('load', function() {
+                        window.scrollTo(0, 0);
+                    });
+                    </script>
+                    """, unsafe_allow_html=True)
                     st.rerun()
 
                 # 一键优化按钮
@@ -665,7 +703,7 @@ if st.session_state.step == 1:
                             • 完成{new_count}个商品报货\n
                             • 完成{remove_count}个商品下架\n
                             • 完成{price_count}个商品调价\n
-                            • 完成{promo_count}个时段促销
+                            # • 完成{promo_count}个时段促销
                             
                             📊 总计：{total_actions}项优化操作已提交
                             """)
@@ -676,73 +714,73 @@ if st.session_state.step == 1:
     else:
         st.success("✅ 所有场景表现正常")
 
-    # ==================== 最优商品组合清单 ====================
-    st.markdown("---")
-    st.markdown("## 🎯 推荐商品组合清单")
+    # # ==================== 最优商品组合清单 ====================
+    # st.markdown("---")
+    # st.markdown("## 🎯 推荐商品组合清单")
     
-    # 模拟最优商品组合数据
-    optimal_products_data = pd.DataFrame({
-        "场景": ["B区饼干", "B区饼干", "A区饮品", "A区饮品", "C区方便食品"],
-        "商品代码": ["B001", "B002", "D004", "F003", "C001"],
-        "商品名称": ["乐事黄瓜味", "奥利奥轻甜", "北冰洋", "外星人电解质水", "康师傅红烧牛肉面"],
-        "品类": ["饼干类", "饼干类", "碳酸饮料", "功能饮料", "方便面"],
-        "执行动作": ["下架", "下架", "下架", "引进", "保留"],
-        "当前价格": ["¥8.5", "¥12.0", "¥6.0", "¥0.0", "¥5.5"],
-        "建议价格": ["-", "-", "-", "¥8.5", "¥5.5"]
-    })
+    # # 模拟最优商品组合数据
+    # optimal_products_data = pd.DataFrame({
+    #     "场景": ["B区饼干", "B区饼干", "A区饮品", "A区饮品", "C区方便食品"],
+    #     "商品代码": ["B001", "B002", "D004", "F003", "C001"],
+    #     "商品名称": ["乐事黄瓜味", "奥利奥轻甜", "北冰洋", "外星人电解质水", "康师傅红烧牛肉面"],
+    #     "品类": ["饼干类", "饼干类", "碳酸饮料", "功能饮料", "方便面"],
+    #     "执行动作": ["下架", "下架", "下架", "引进", "保留"],
+    #     "当前价格": ["¥8.5", "¥12.0", "¥6.0", "¥0.0", "¥5.5"],
+    #     "建议价格": ["-", "-", "-", "¥8.5", "¥5.5"]
+    # })
     
-    # 创建两列布局
-    col_left, col_right = st.columns([3, 1])
+    # # 创建两列布局
+    # col_left, col_right = st.columns([3, 1])
     
-    with col_left:
-        # 显示商品清单
-        # st.markdown("### 📋 商品清单")
+    # with col_left:
+    #     # 显示商品清单
+    #     # st.markdown("### 📋 商品清单")
 
-        if not optimal_products_data.empty:
-            st.dataframe(optimal_products_data, use_container_width=True, hide_index=True)
-        else:
-            st.info("当前暂无最优商品组合数据")
+    #     if not optimal_products_data.empty:
+    #         st.dataframe(optimal_products_data, use_container_width=True, hide_index=True)
+    #     else:
+    #         st.info("当前暂无最优商品组合数据")
         
-        # 统计信息
-        total_products = len(optimal_products_data)
-        remove_count = len(optimal_products_data[optimal_products_data["执行动作"] == "下架"])
-        add_count = len(optimal_products_data[optimal_products_data["执行动作"] == "引进"])
-        price_change_count = len(optimal_products_data[(optimal_products_data["建议价格"] != '-') & 
-                                                       (optimal_products_data["建议价格"] != optimal_products_data["当前价格"])])
+    #     # 统计信息
+    #     total_products = len(optimal_products_data)
+    #     remove_count = len(optimal_products_data[optimal_products_data["执行动作"] == "下架"])
+    #     add_count = len(optimal_products_data[optimal_products_data["执行动作"] == "引进"])
+    #     price_change_count = len(optimal_products_data[(optimal_products_data["建议价格"] != '-') & 
+    #                                                    (optimal_products_data["建议价格"] != optimal_products_data["当前价格"])])
         
-        st.markdown(f"""
-        <div style="background-color: #f5f5f5; padding: 10px; border-radius: 5px; margin-top: 10px;">
-        <strong>📊 统计信息：</strong> 共{total_products}个商品 | 
-        <span style="color: #f44336;">下架：{remove_count}个</span> | 
-        <span style="color: #4caf50;">引进：{add_count}个</span> | 
-        <span style="color: #2196f3;">调价：{price_change_count}个</span>
-        </div>
-        """, unsafe_allow_html=True)
+    #     st.markdown(f"""
+    #     <div style="background-color: #f5f5f5; padding: 10px; border-radius: 5px; margin-top: 10px;">
+    #     <strong>📊 统计信息：</strong> 共{total_products}个商品 | 
+    #     <span style="color: #f44336;">下架：{remove_count}个</span> | 
+    #     <span style="color: #4caf50;">引进：{add_count}个</span> | 
+    #     <span style="color: #2196f3;">调价：{price_change_count}个</span>
+    #     </div>
+    #     """, unsafe_allow_html=True)
        
-    with col_right:
-        st.markdown("### ⚡ 快速操作")
-        st.markdown("")
+    # with col_right:
+    #     st.markdown("### ⚡ 快速操作")
+    #     st.markdown("")
         
-        # 统计操作数量
-        remove_count = len(optimal_products_data[optimal_products_data["执行动作"] == "下架"])
-        add_count = len(optimal_products_data[optimal_products_data["执行动作"] == "引进"])
-        price_change_count = len(optimal_products_data[(optimal_products_data["建议价格"] != '-') & 
-                                                       (optimal_products_data["建议价格"] != optimal_products_data["当前价格"])])
-        total_actions = remove_count + add_count + price_change_count
+    #     # 统计操作数量
+    #     remove_count = len(optimal_products_data[optimal_products_data["执行动作"] == "下架"])
+    #     add_count = len(optimal_products_data[optimal_products_data["执行动作"] == "引进"])
+    #     price_change_count = len(optimal_products_data[(optimal_products_data["建议价格"] != '-') & 
+    #                                                    (optimal_products_data["建议价格"] != optimal_products_data["当前价格"])])
+    #     total_actions = remove_count + add_count + price_change_count
 
-        # 一键执行按钮
-        if st.button("🚀 一键执行", use_container_width=True, type="primary"):
-            if total_actions > 0:
-                st.success(f"✅ 已提交全部{total_actions}项操作申请")
-            else:
-                st.info("ℹ️ 当前没有需要执行的操作")
+    #     # 一键执行按钮
+    #     if st.button("🚀 一键执行", use_container_width=True, type="primary"):
+    #         if total_actions > 0:
+    #             st.success(f"✅ 已提交全部{total_actions}项操作申请")
+    #         else:
+    #             st.info("ℹ️ 当前没有需要执行的操作")
 
-        # 导出清单按钮
-        if st.button("📋 导出清单", use_container_width=True, type="secondary"):
-            st.success("📄 商品清单已导出为Excel文件")
-            st.info("💡 文件已保存到下载目录")
+    #     # 导出清单按钮
+    #     if st.button("📋 导出清单", use_container_width=True, type="secondary"):
+    #         st.success("📄 商品清单已导出为Excel文件")
+    #         st.info("💡 文件已保存到下载目录")
         
-        # st.markdown("---")
+    #     # st.markdown("---")
                
 
 
@@ -874,7 +912,7 @@ elif st.session_state.step == 3:
                         "新品引进": {},
                         "汰品淘汰": {},
                         "价格优化": {},
-                        "时段促销": {}
+                        # "时段促销": {}
                     }
                 
                 # 初始化当前选中的调整类型
@@ -915,10 +953,11 @@ elif st.session_state.step == 3:
                 """, unsafe_allow_html=True)
                 
                 # 四个调整选项按钮
-                adjustment_types = ["新品引进", "汰品淘汰", "价格优化", "时段促销"]
-                
+                adjustment_types = ["新品引进", "汰品淘汰", "价格优化"]
+                # adjustment_types = ["新品引进", "汰品淘汰", "价格优化", "时段促销"]
+
                 # 创建选项卡
-                col1, col2, col3, col4 = st.columns(4)
+                col1, col2, col3 = st.columns(3)
                 with col1:
                     if st.button("🆕 新品引进", use_container_width=True, 
                             type="primary" if st.session_state.current_adjustment_type == "新品引进" else "secondary"):
@@ -934,11 +973,11 @@ elif st.session_state.step == 3:
                             type="primary" if st.session_state.current_adjustment_type == "价格优化" else "secondary"):
                         st.session_state.current_adjustment_type = "价格优化"
                         st.rerun()
-                with col4:
-                    if st.button("⏰ 时段促销", use_container_width=True,
-                            type="primary" if st.session_state.current_adjustment_type == "时段促销" else "secondary"):
-                        st.session_state.current_adjustment_type = "时段促销"
-                        st.rerun()
+                # with col4:
+                #     if st.button("⏰ 时段促销", use_container_width=True,
+                #             type="primary" if st.session_state.current_adjustment_type == "时段促销" else "secondary"):
+                #         st.session_state.current_adjustment_type = "时段促销"
+                #         st.rerun()
                 
                 # 根据选中的类型显示对应的商品清单
                 current_type = st.session_state.current_adjustment_type
@@ -954,10 +993,10 @@ elif st.session_state.step == 3:
                     # 假设价格优化的商品有特定标识
                     filtered_data = product_data[product_data["原因"].str.contains("价格|调价|定价", na=False)]
                     action_name = "调价"
-                else:  # 时段促销
-                    # 假设促销的商品有特定标识
-                    filtered_data = product_data[product_data["原因"].str.contains("促销|活动|时段", na=False)]
-                    action_name = "调整"
+                # else:  # 时段促销
+                #     # 假设促销的商品有特定标识
+                #     filtered_data = product_data[product_data["原因"].str.contains("促销|活动|时段", na=False)]
+                #     action_name = "调整"
                 
                 if not filtered_data.empty:
                     # 创建商品容器
@@ -1038,8 +1077,8 @@ elif st.session_state.step == 3:
                             button_name = "🚀 一键下架"
                         elif current_type == "价格优化":
                             button_name = "🚀 一键调价"
-                        else:  # 时段促销
-                            button_name = "🚀 一键促销"
+                        # else:  # 时段促销
+                        #     button_name = "🚀 一键促销"
                         
                         if st.button(button_name, use_container_width=True, type="primary"):
                             if selected_count > 0:
